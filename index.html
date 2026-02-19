@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Dictionary Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background-color: #f4f4f4;
+            transition: 0.3s;
+        }
+        .dark {
+            background-color: #121212;
+            color: white;
+        }
+        input {
+            width: 80%;
+            padding: 12px;
+            font-size: 18px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+        .dark .card {
+            background: #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+
+<h2>📖 Smart Dictionary Pro</h2>
+
+<input type="text" id="wordInput" placeholder="Enter a word">
+<br>
+<button onclick="searchWord()">Search</button>
+<button onclick="toggleDark()">🌙 Dark Mode</button>
+
+<div id="result"></div>
+
+<h3>⭐ Favourite Words</h3>
+<div id="favorites"></div>
+
+<script>
+
+function toggleDark() {
+    document.body.classList.toggle("dark");
+}
+
+function speak(text) {
+    let speech = new SpeechSynthesisUtterance(text);
+    speech.lang = "en-US";
+    window.speechSynthesis.speak(speech);
+}
+
+function saveFavorite(word) {
+    let favs = JSON.parse(localStorage.getItem("favorites")) || [];
+    if (!favs.includes(word)) {
+        favs.push(word);
+        localStorage.setItem("favorites", JSON.stringify(favs));
+        loadFavorites();
+    }
+}
+
+function loadFavorites() {
+    let favs = JSON.parse(localStorage.getItem("favorites")) || [];
+    let favDiv = document.getElementById("favorites");
+    favDiv.innerHTML = "";
+    favs.forEach(word => {
+        favDiv.innerHTML += `<div>${word}</div>`;
+    });
+}
+
+async function searchWord() {
+    const word = document.getElementById("wordInput").value.trim();
+    const resultDiv = document.getElementById("result");
+
+    if (!word) {
+        resultDiv.innerHTML = "Please enter a word.";
+        return;
+    }
+
+    resultDiv.innerHTML = "Searching...";
+
+    try {
+        let response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+        let data = await response.json();
+
+        if (response.ok) {
+            let output = `<div class="card">
+                          <h3>${data[0].word}</h3>
+                          <button onclick="speak('${data[0].word}')">🔊 Pronounce</button>
+                          <button onclick="saveFavorite('${data[0].word}')">⭐ Save</button><br><br>`;
+
+            data[0].meanings.forEach((meaning) => {
+                output += `<b>${meaning.partOfSpeech}</b><br>`;
+                meaning.definitions.slice(0,3).forEach((def,i)=>{
+                    output += `• ${def.definition}<br>`;
+                    if(def.example){
+                        output += `<i>Example:</i> ${def.example}<br>`;
+                    }
+                    output += `<br>`;
+                });
+            });
+
+            output += `</div>`;
+            resultDiv.innerHTML = output;
+
+        } else {
+            let spellResponse = await fetch(`https://api.datamuse.com/sug?s=${word}`);
+            let spellData = await spellResponse.json();
+
+            if (spellData.length > 0) {
+                resultDiv.innerHTML =
+                `Word not found.<br><b>Did you mean:</b> ${spellData[0].word}?`;
+            } else {
+                resultDiv.innerHTML = "Word not found.";
+            }
+        }
+
+    } catch (error) {
+        resultDiv.innerHTML = "Error connecting to dictionary.";
+    }
+}
+
+loadFavorites();
+
+</script>
+
+</body>
+</html>
