@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="manifest.json">
     <title>Smart Dictionary Pro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -137,6 +138,11 @@ async function searchWord() {
 loadFavorites();
 
 </script>
-
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
 </body>
 </html>
+
